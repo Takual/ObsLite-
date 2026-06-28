@@ -14,6 +14,7 @@
     let notes = {};
     let currentNote = null;
     let editMode = false;
+    let currentPanel = 'notes';
 
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => document.querySelectorAll(sel);
@@ -41,9 +42,11 @@
             localStorage.setItem(INIT_KEY, '1');
         }
 
+        handleSharedContent();
         renderNoteList();
         navigateTo(getHashNote() || DEFAULT_NOTE);
         setupEventListeners();
+        registerServiceWorker();
     }
 
     async function loadDefaultNotes() {
@@ -61,9 +64,126 @@
         saveNotes();
     }
 
-    function getHashNote() {
-        const hash = location.hash.slice(1);
-        return hash || null;
+    function registerServiceWorker() {
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js');
+        }
+    }
+
+    // --- Share Target ---
+
+    function handleSharedContent() {
+        const params = new URLSearchParams(window.location.search);
+        const sharedTitle = params.get('shared_title') || '';
+        const sharedText = params.get('shared_text') || '';
+        const sharedUrl = params.get('shared_url') || '';
+
+        if (!sharedTitle && !sharedText && !sharedUrl) return;
+
+        const title = sharedTitle || extractTitle(sharedText) || extractTitle(sharedUrl) || 'geteilter-inhalt';
+        const slug = slugify(title) || 'geteilter-inhalt-' + Date.now();
+
+        let content = '# ' + title + '\n\n';
+        content += '*Gespeichert am ' + new Date().toLocaleDateString('de-DE') + '*\n\n';
+
+        if (sharedUrl) {
+            content += '**Link:** ' + sharedUrl + '\n\n';
+        }
+        if (sharedText && sharedText !== sharedUrl) {
+            content += sharedText + '\n';
+        }
+
+        const noteName = findUniqueSlug(slug);
+        notes[noteName] = content;
+        saveNotes();
+
+        window.history.replaceState({}, '', window.location.pathname + '#' + noteName);
+        showToast('Notiz "' + noteName + '" erstellt');
+
+        currentNote = noteName;
+    }
+
+    function extractTitle(text) {
+        if (!text) return '';
+        try {
+            const url = new URL(text);
+            return url.hostname.replace('www.', '') + url.pathname.slice(0, 30);
+        } catch (e) {
+            return text.slice(0, 40).replace(/[^a-zA-Z0-9äöüÄÖÜß\s-]/g, '').trim();
+        }
+    }
+
+    function findUniqueSlug(slug) {
+        if (!notes[slug]) return slug;
+        let i = 2;
+        while (notes[slug + '-' + i]) i++;
+        return slug + '-' + i;
+    }
+
+    // --- Quick Add (Clipboard / manual URL) ---
+
+    function quickAddFromClipboard() {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            navigator.clipboard.readText().then(text => {
+                if (text && text.trim()) {
+                    quickAddContent(text.trim());
+                } else {
+                    showNewNoteModal();
+                }
+            }).catch(() => {
+                showNewNoteModal();
+            });
+        } else {
+            showNewNoteModal();
+        }
+    }
+
+    function quickAddContent(text) {
+        let title, content;
+
+        try {
+            const url = new URL(text);
+            title = url.hostname.replace('www.', '');
+            content = '# ' + title + '\n\n';
+            content += '*Gespeichert am ' + new Date().toLocaleDateString('de-DE') + '*\n\n';
+            content += '**Link:** ' + text + '\n';
+        } catch (e) {
+            title = text.slice(0, 40).replace(/[^a-zA-Z0-9äöüÄÖÜß\s-]/g, '').trim() || 'notiz';
+            content = '# ' + title + '\n\n' + text + '\n';
+        }
+
+        const slug = findUniqueSlug(slugify(title) || 'notiz-' + Date.now());
+        notes[slug] = content;
+        saveNotes();
+        renderNoteList();
+        navigateTo(slug);
+        showToast('Notiz "' + slug + '" erstellt');
+    }
+
+    // --- Panel Navigation ---
+
+    function showPanel(name) {
+        currentPanel = name;
+        $$('.panel').forEach(p => p.classList.remove('active'));
+        $('#panel-' + name).classList.add('active');
+
+        $$('#bottom-nav button').forEach(b => b.classList.remove('active'));
+        const navBtn = $('#nav-' + name);
+        if (navBtn) navBtn.classList.add('active');
+
+        if (name === 'view' || name === 'edit') {
+            updateTopBar();
+        }
+    }
+
+    function updateTopBar() {
+        if (!currentNote) return;
+        $('.note-title').textContent = currentNote;
+        const editBtn = $('#btn-edit-mobile');
+        if (editBtn) {
+            editBtn.textContent = editMode ? '✓' : '✎';
+            editBtn.classList.toggle('active', editMode);
+        }
     }
 
     // --- Rendering ---
@@ -81,8 +201,16 @@
             if (filter && !name.toLowerCase().includes(filter.toLowerCase())) continue;
             const div = document.createElement('div');
             div.className = 'note-item' + (name === currentNote ? ' active' : '');
-            div.textContent = name;
-            div.onclick = () => navigateTo(name);
+
+            const span = document.createElement('span');
+            span.className = 'note-item-name';
+            span.textContent = name;
+            div.appendChild(span);
+
+            div.onclick = () => {
+                navigateTo(name);
+                showPanel('view');
+            };
 
             if (name !== 'home') {
                 const del = document.createElement('button');
@@ -103,17 +231,34 @@
         if (!currentNote || !notes[currentNote]) return;
 
         const content = notes[currentNote];
-        $('.note-title').textContent = currentNote;
+        updateTopBar();
 
-        if (editMode) {
-            $('#viewer').style.display = 'none';
-            $('#editor').style.display = 'block';
-            $('#editor textarea').value = content;
-        } else {
-            $('#editor').style.display = 'none';
-            $('#viewer').style.display = 'block';
-            $('#viewer').innerHTML = renderMarkdown(content);
-            bindWikilinks();
+        // Desktop toolbar
+        const dtTitle = $('#desktop-note-title');
+        if (dtTitle) dtTitle.textContent = currentNote;
+        const dtEdit = $('#btn-edit-desktop');
+        if (dtEdit) {
+            dtEdit.textContent = editMode ? 'Ansicht' : 'Bearbeiten';
+            dtEdit.classList.toggle('active', editMode);
+        }
+
+        // Viewer
+        $('#viewer').innerHTML = renderMarkdown(content);
+        bindWikilinks();
+
+        // Editor
+        const textarea = $('#panel-edit textarea');
+        if (textarea) textarea.value = content;
+
+        // Desktop: toggle view/edit panels
+        if (window.innerWidth >= 768) {
+            if (editMode) {
+                $('#panel-view').classList.add('has-editor');
+                $('#panel-edit').classList.add('active');
+            } else {
+                $('#panel-view').classList.remove('has-editor');
+                $('#panel-edit').classList.remove('active');
+            }
         }
 
         renderBacklinks();
@@ -151,6 +296,7 @@
                     renderNoteList();
                 }
                 navigateTo(target);
+                showPanel('view');
             });
         });
     }
@@ -167,7 +313,10 @@
             if (content && content.includes(pattern)) {
                 const div = document.createElement('div');
                 div.className = 'backlink-item';
-                div.textContent = name;
+
+                const title = document.createElement('div');
+                title.textContent = name;
+                div.appendChild(title);
 
                 const idx = content.indexOf(pattern);
                 const start = Math.max(0, idx - 40);
@@ -177,17 +326,25 @@
                 ctx.textContent = '...' + content.slice(start, end).replace(/\n/g, ' ') + '...';
                 div.appendChild(ctx);
 
-                div.onclick = () => navigateTo(name);
+                div.onclick = () => {
+                    navigateTo(name);
+                    showPanel('view');
+                };
                 list.appendChild(div);
             }
         }
 
         if (!list.children.length) {
-            list.innerHTML = '<div style="padding:12px;color:var(--text-muted);font-size:0.85rem;">Keine Backlinks</div>';
+            list.innerHTML = '<div style="padding:16px;color:var(--text-muted);font-size:0.9rem;">Keine Backlinks</div>';
         }
     }
 
     // --- Navigation ---
+
+    function getHashNote() {
+        const hash = location.hash.slice(1);
+        return hash || null;
+    }
 
     function navigateTo(name) {
         if (editMode) saveCurrentEdit();
@@ -196,7 +353,6 @@
         location.hash = name;
         renderNoteList();
         renderNote();
-        updateToolbarButtons();
     }
 
     // --- Edit ---
@@ -205,37 +361,34 @@
         if (editMode) {
             saveCurrentEdit();
             editMode = false;
+            if (window.innerWidth < 768) {
+                showPanel('view');
+            }
         } else {
             editMode = true;
+            if (window.innerWidth < 768) {
+                showPanel('edit');
+            }
         }
         renderNote();
-        updateToolbarButtons();
     }
 
     function saveCurrentEdit() {
         if (!currentNote) return;
-        const textarea = $('#editor textarea');
+        const textarea = $('#panel-edit textarea');
         if (textarea) {
             notes[currentNote] = textarea.value;
             saveNotes();
         }
     }
 
-    function updateToolbarButtons() {
-        const btn = $('#btn-edit');
-        if (btn) {
-            btn.textContent = editMode ? 'Ansicht' : 'Bearbeiten';
-            btn.classList.toggle('active', editMode);
-        }
-    }
-
     // --- Note Management ---
 
-    function createNote() {
+    function showNewNoteModal() {
         $('#new-note-modal').classList.add('visible');
         const input = $('#new-note-name');
         input.value = '';
-        input.focus();
+        setTimeout(() => input.focus(), 100);
     }
 
     function confirmCreateNote() {
@@ -251,6 +404,7 @@
             navigateTo(name);
         }
         $('#new-note-modal').classList.remove('visible');
+        showPanel('view');
     }
 
     function deleteNote(name) {
@@ -275,6 +429,15 @@
             a.click();
             URL.revokeObjectURL(a.href);
         });
+    }
+
+    // --- Toast ---
+
+    function showToast(msg) {
+        const toast = $('#toast');
+        toast.textContent = msg;
+        toast.classList.add('visible');
+        setTimeout(() => toast.classList.remove('visible'), 2500);
     }
 
     // --- Graph ---
@@ -325,10 +488,10 @@
             .attr('height', height);
 
         const simulation = d3.forceSimulation(nodes)
-            .force('link', d3.forceLink(links).distance(120))
-            .force('charge', d3.forceManyBody().strength(-300))
+            .force('link', d3.forceLink(links).distance(100))
+            .force('charge', d3.forceManyBody().strength(-200))
             .force('center', d3.forceCenter(width / 2, height / 2))
-            .force('collision', d3.forceCollide().radius(40));
+            .force('collision', d3.forceCollide().radius(35));
 
         const link = svg.append('g')
             .selectAll('line')
@@ -372,6 +535,7 @@
         node.on('click', (event, d) => {
             hideGraph();
             navigateTo(d.id);
+            showPanel('view');
         });
 
         simulation.on('tick', () => {
@@ -395,13 +559,24 @@
     // --- Events ---
 
     function setupEventListeners() {
-        $('#btn-new').onclick = createNote;
+        // Bottom nav
+        $('#nav-notes').onclick = () => showPanel('notes');
+        $('#nav-view').onclick = () => showPanel('view');
+        $('#nav-backlinks').onclick = () => showPanel('backlinks');
+        $('#nav-graph').onclick = showGraph;
+
+        // Top bar
+        $('#btn-edit-mobile').onclick = toggleEdit;
+
+        // Sidebar actions
+        $('#btn-new').onclick = showNewNoteModal;
+        $('#btn-add-clip').onclick = quickAddFromClipboard;
         $('#btn-export').onclick = exportZip;
-        $('#btn-edit').onclick = toggleEdit;
-        $('#btn-graph').onclick = showGraph;
-        $('#graph-close').onclick = hideGraph;
+
+        // Search
         $('#search-box').oninput = (e) => renderNoteList(e.target.value);
 
+        // Modal
         $('#btn-create-confirm').onclick = confirmCreateNote;
         $('#btn-create-cancel').onclick = () => $('#new-note-modal').classList.remove('visible');
         $('#new-note-name').onkeydown = (e) => {
@@ -409,11 +584,22 @@
             if (e.key === 'Escape') $('#new-note-modal').classList.remove('visible');
         };
 
+        // Graph
+        $('#graph-close').onclick = hideGraph;
+
+        // Desktop toolbar
+        const dtEdit = $('#btn-edit-desktop');
+        if (dtEdit) dtEdit.onclick = toggleEdit;
+        const dtGraph = $('#btn-graph-desktop');
+        if (dtGraph) dtGraph.onclick = showGraph;
+
+        // Hash navigation
         window.addEventListener('hashchange', () => {
             const name = getHashNote();
             if (name && name !== currentNote) navigateTo(name);
         });
 
+        // Keyboard
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === 'e') {
                 e.preventDefault();
@@ -424,6 +610,14 @@
                 if ($('#new-note-modal').classList.contains('visible')) {
                     $('#new-note-modal').classList.remove('visible');
                 }
+            }
+        });
+
+        // Auto-save editor on panel switch
+        $('#panel-edit textarea').addEventListener('input', () => {
+            if (currentNote) {
+                notes[currentNote] = $('#panel-edit textarea').value;
+                saveNotes();
             }
         });
     }

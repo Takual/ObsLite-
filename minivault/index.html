@@ -2,8 +2,12 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
     <title>MiniVault</title>
+    <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
@@ -11,41 +15,75 @@
 </head>
 <body>
     <div id="app">
-        <div id="sidebar">
-            <div id="sidebar-header">
-                <h1>MiniVault</h1>
-                <div id="sidebar-actions">
-                    <button id="btn-new">+ Neue Notiz</button>
-                    <button id="btn-export">Export ZIP</button>
+        <!-- Mobile Top Bar -->
+        <div id="top-bar">
+            <span class="note-title">home</span>
+            <button id="btn-edit-mobile">✎</button>
+        </div>
+
+        <!-- Panels -->
+        <div id="panels">
+            <!-- Notes List -->
+            <div class="panel active" id="panel-notes">
+                <input type="text" id="search-box" placeholder="Notizen suchen...">
+                <div style="padding:8px 12px;display:flex;gap:6px;">
+                    <button id="btn-new" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--accent);color:white;cursor:pointer;font-size:0.9rem;">+ Neue Notiz</button>
+                    <button id="btn-add-clip" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-tertiary);color:var(--text-primary);cursor:pointer;font-size:0.9rem;" title="Aus Zwischenablage einfügen">📋</button>
+                    <button id="btn-export" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-tertiary);color:var(--text-primary);cursor:pointer;font-size:0.9rem;" title="Als ZIP exportieren">💾</button>
                 </div>
-                <input type="text" id="search-box" placeholder="Suchen...">
+                <div id="note-list"></div>
             </div>
-            <div id="note-list"></div>
-        </div>
 
-        <div id="main">
-            <div id="toolbar">
-                <span class="note-title">home</span>
-                <button id="btn-edit">Bearbeiten</button>
-                <button id="btn-graph">Graph</button>
-            </div>
-            <div id="content-area">
+            <!-- View -->
+            <div class="panel" id="panel-view">
+                <div id="desktop-toolbar">
+                    <span class="note-title" id="desktop-note-title">home</span>
+                    <button id="btn-edit-desktop">Bearbeiten</button>
+                    <button id="btn-graph-desktop">Graph</button>
+                </div>
                 <div id="viewer"></div>
-                <div id="editor"><textarea spellcheck="false"></textarea></div>
+            </div>
+
+            <!-- Editor -->
+            <div class="panel" id="panel-edit">
+                <textarea spellcheck="false" placeholder="Markdown schreiben..."></textarea>
+            </div>
+
+            <!-- Backlinks -->
+            <div class="panel" id="panel-backlinks">
+                <h3>Backlinks</h3>
+                <div id="backlinks-list"></div>
             </div>
         </div>
 
-        <div id="backlinks-panel">
-            <h3>Backlinks</h3>
-            <div id="backlinks-list"></div>
+        <!-- Mobile Bottom Navigation -->
+        <div id="bottom-nav">
+            <button id="nav-notes" class="active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+                Notizen
+            </button>
+            <button id="nav-view">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Lesen
+            </button>
+            <button id="nav-backlinks">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                Links
+            </button>
+            <button id="nav-graph">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><line x1="8.5" y1="7.5" x2="15.5" y2="16.5"/><line x1="15.5" y1="6" x2="8.5" y2="6"/></svg>
+                Graph
+            </button>
         </div>
     </div>
 
+    <!-- Graph Overlay -->
     <div id="graph-overlay">
         <button id="graph-close">Schließen</button>
         <div id="graph-container"></div>
     </div>
 
+    <!-- New Note Modal -->
     <div class="modal-overlay" id="new-note-modal">
         <div class="modal">
             <h3>Neue Notiz</h3>
@@ -56,6 +94,9 @@
             </div>
         </div>
     </div>
+
+    <!-- Toast -->
+    <div id="toast"></div>
 
     <script src="app.js"></script>
 </body>
