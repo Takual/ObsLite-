@@ -1,10 +1,12 @@
-const CACHE_NAME = 'minivault-v2';
+const CACHE_NAME = 'minivault-v3';
 const ASSETS = [
     './',
     './index.html',
     './app.js',
     './style.css',
-    './manifest.json'
+    './manifest.json',
+    './icon-192.png',
+    './icon-512.png'
 ];
 
 self.addEventListener('install', (e) => {
@@ -24,14 +26,15 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-    const url = new URL(e.request.url);
-
-    if (url.searchParams.has('shared_title') || url.searchParams.has('shared_text') || url.searchParams.has('shared_url')) {
-        e.respondWith(Response.redirect(url.pathname + '?' + url.searchParams.toString()));
-        return;
-    }
-
     e.respondWith(
-        fetch(e.request).catch(() => caches.match(e.request))
+        caches.match(e.request).then(cached => {
+            return cached || fetch(e.request).then(response => {
+                if (response.ok && e.request.method === 'GET') {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+                }
+                return response;
+            });
+        })
     );
 });
