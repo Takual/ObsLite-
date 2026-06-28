@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiniVault</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3/dist/jszip.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div id="sidebar">
+            <div id="sidebar-header">
+                <h1>MiniVault</h1>
+                <div id="sidebar-actions">
+                    <button id="btn-new">+ Neue Notiz</button>
+                    <button id="btn-export">Export ZIP</button>
+                </div>
+                <input type="text" id="search-box" placeholder="Suchen...">
+            </div>
+            <div id="note-list"></div>
+        </div>
+
+        <div id="main">
+            <div id="toolbar">
+                <span class="note-title">home</span>
+                <button id="btn-edit">Bearbeiten</button>
+                <button id="btn-graph">Graph</button>
+            </div>
+            <div id="content-area">
+                <div id="viewer"></div>
+                <div id="editor"><textarea spellcheck="false"></textarea></div>
+            </div>
+        </div>
+
+        <div id="backlinks-panel">
+            <h3>Backlinks</h3>
+            <div id="backlinks-list"></div>
+        </div>
+    </div>
+
+    <div id="graph-overlay">
+        <button id="graph-close">Schließen</button>
+        <div id="graph-container"></div>
+    </div>
+
+    <div class="modal-overlay" id="new-note-modal">
+        <div class="modal">
+            <h3>Neue Notiz</h3>
+            <input type="text" id="new-note-name" placeholder="Name der Notiz...">
+            <div class="modal-actions">
+                <button id="btn-create-cancel">Abbrechen</button>
+                <button id="btn-create-confirm" class="primary">Erstellen</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
