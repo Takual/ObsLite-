@@ -1,4 +1,4 @@
-const CACHE_NAME = 'minivault-v1';
+const CACHE_NAME = 'minivault-v2';
 const ASSETS = [
     './',
     './index.html',
@@ -24,7 +24,14 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+    const url = new URL(e.request.url);
+
+    if (url.searchParams.has('shared_title') || url.searchParams.has('shared_text') || url.searchParams.has('shared_url')) {
+        e.respondWith(Response.redirect(url.pathname + '?' + url.searchParams.toString()));
+        return;
+    }
+
     e.respondWith(
-        caches.match(e.request).then(cached => cached || fetch(e.request))
+        fetch(e.request).catch(() => caches.match(e.request))
     );
 });
