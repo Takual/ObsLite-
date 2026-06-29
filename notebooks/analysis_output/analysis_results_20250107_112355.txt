@@ -1,3 +1,0 @@
-Analyse der YouTube-Metriken mit Ausreißerbehandlung
-Durchgeführt am: 2025-01-07 11:23:55
-================================================================================
