@@ -32,6 +32,7 @@
                     <button id="btn-new" class="accent">+ Notiz</button>
                     <button id="btn-daily" class="daily">📅 Heute</button>
                     <button id="btn-export" title="ZIP Export">💾</button>
+                    <button id="btn-sync" title="Sync">🔄</button>
                     <select id="sort-select">
                         <option value="name">A-Z</option>
                         <option value="modified">Zuletzt bearbeitet</option>
@@ -127,6 +128,25 @@
                 <button id="btn-project-remove" style="color:var(--accent)">Entfernen</button>
                 <button id="btn-project-cancel">Abbrechen</button>
                 <button id="btn-project-confirm" class="primary">Zuordnen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sync Settings Modal -->
+    <div class="modal-overlay" id="sync-modal">
+        <div class="modal">
+            <h3>🔄 Sync-Einstellungen</h3>
+            <label>GitHub Personal Access Token</label>
+            <input type="password" id="sync-token" placeholder="ghp_...">
+            <p class="sync-hint">Benötigt den Scope <strong>gist</strong>. Erstelle einen Token unter GitHub → Settings → Developer settings → Personal access tokens.</p>
+            <div id="sync-status-info"></div>
+            <div class="modal-actions">
+                <button id="btn-sync-cancel">Abbrechen</button>
+                <button id="btn-sync-save" class="primary">Speichern</button>
+            </div>
+            <div class="modal-actions" style="margin-top:6px;">
+                <button id="btn-sync-now" style="background:var(--bg-tertiary);">Jetzt synchronisieren</button>
+                <button id="btn-sync-disconnect" style="color:var(--accent);background:var(--bg-tertiary);">Trennen</button>
             </div>
         </div>
     </div>

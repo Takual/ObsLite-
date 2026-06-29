@@ -6,6 +6,9 @@
     const PROJECTS_KEY = 'minivault_projects';
     const INIT_KEY = 'minivault_initialized';
     const SORT_KEY = 'minivault_sort';
+    const SYNC_TOKEN_KEY = 'minivault_sync_token';
+    const SYNC_GIST_KEY = 'minivault_sync_gist_id';
+    const SYNC_LAST_KEY = 'minivault_sync_last';
     const DEFAULT_NOTE = 'home';
 
     const DEFAULT_NOTES = [
@@ -94,6 +97,8 @@
         navigateTo(getHashNote() || DEFAULT_NOTE);
         setupEventListeners();
         registerServiceWorker();
+        updateSyncIndicator();
+        autoSync();
     }
 
     const DEFAULT_PROJECT_MAP = {
@@ -922,6 +927,221 @@
             String(d.getDate()).padStart(2, '0');
     }
 
+    // --- Gist Sync ---
+
+    let syncInProgress = false;
+
+    function getSyncToken() { return localStorage.getItem(SYNC_TOKEN_KEY) || ''; }
+    function getSyncGistId() { return localStorage.getItem(SYNC_GIST_KEY) || ''; }
+
+    function showSyncModal() {
+        $('#sync-modal').classList.add('visible');
+        $('#sync-token').value = getSyncToken();
+        updateSyncStatusInfo();
+    }
+
+    function updateSyncStatusInfo() {
+        const info = $('#sync-status-info');
+        const gistId = getSyncGistId();
+        const lastSync = localStorage.getItem(SYNC_LAST_KEY);
+        const token = getSyncToken();
+        if (!token) {
+            info.innerHTML = '<span style="color:var(--text-muted)">Nicht verbunden</span>';
+        } else if (gistId) {
+            const lastStr = lastSync ? new Date(parseInt(lastSync)).toLocaleString('de-DE') : 'Nie';
+            info.innerHTML = '<span style="color:#4ade80">Verbunden</span> · Letzter Sync: ' + lastStr;
+        } else {
+            info.innerHTML = '<span style="color:var(--tag-color)">Token gesetzt – noch nicht synchronisiert</span>';
+        }
+    }
+
+    function saveSyncToken() {
+        const token = $('#sync-token').value.trim();
+        if (token) {
+            localStorage.setItem(SYNC_TOKEN_KEY, token);
+            showToast('Token gespeichert');
+        } else {
+            localStorage.removeItem(SYNC_TOKEN_KEY);
+        }
+        updateSyncStatusInfo();
+    }
+
+    function disconnectSync() {
+        if (!confirm('Sync trennen? Lokale Daten bleiben erhalten.')) return;
+        localStorage.removeItem(SYNC_TOKEN_KEY);
+        localStorage.removeItem(SYNC_GIST_KEY);
+        localStorage.removeItem(SYNC_LAST_KEY);
+        $('#sync-token').value = '';
+        updateSyncStatusInfo();
+        updateSyncIndicator();
+        showToast('Sync getrennt');
+    }
+
+    async function gistApiRequest(method, url, body) {
+        const token = getSyncToken();
+        if (!token) throw new Error('Kein GitHub-Token gesetzt');
+        const opts = {
+            method: method,
+            headers: {
+                'Authorization': 'token ' + token,
+                'Accept': 'application/vnd.github.v3+json'
+            }
+        };
+        if (body) {
+            opts.headers['Content-Type'] = 'application/json';
+            opts.body = JSON.stringify(body);
+        }
+        const resp = await fetch('https://api.github.com' + url, opts);
+        if (!resp.ok) {
+            const err = await resp.text();
+            throw new Error('GitHub API Fehler ' + resp.status + ': ' + err);
+        }
+        return resp.json();
+    }
+
+    function buildGistPayload() {
+        return {
+            description: 'MiniVault Sync – Nicht manuell bearbeiten',
+            public: false,
+            files: {
+                'minivault_notes.json': { content: JSON.stringify(notes, null, 2) },
+                'minivault_meta.json': { content: JSON.stringify(meta, null, 2) },
+                'minivault_projects.json': { content: JSON.stringify(projects, null, 2) }
+            }
+        };
+    }
+
+    function mergeData(remoteNotes, remoteMeta, remoteProjects) {
+        let changed = false;
+
+        for (const [name, content] of Object.entries(remoteNotes)) {
+            if (!notes[name]) {
+                notes[name] = content;
+                if (remoteMeta[name]) meta[name] = remoteMeta[name];
+                else getMeta(name);
+                changed = true;
+            } else {
+                const localMod = (meta[name] && meta[name].modified) || 0;
+                const remoteMod = (remoteMeta[name] && remoteMeta[name].modified) || 0;
+                if (remoteMod > localMod) {
+                    notes[name] = content;
+                    meta[name] = remoteMeta[name];
+                    changed = true;
+                }
+            }
+        }
+
+        for (const [name, content] of Object.entries(notes)) {
+            if (!remoteNotes[name]) {
+                changed = true;
+            }
+        }
+
+        if (remoteProjects && remoteProjects.length) {
+            for (const p of remoteProjects) {
+                if (!projects.includes(p)) {
+                    projects.push(p);
+                    changed = true;
+                }
+            }
+        }
+
+        return changed;
+    }
+
+    async function syncNow() {
+        if (syncInProgress) return;
+        const token = getSyncToken();
+        if (!token) {
+            showSyncModal();
+            return;
+        }
+
+        syncInProgress = true;
+        updateSyncIndicator('syncing');
+
+        try {
+            const gistId = getSyncGistId();
+
+            if (gistId) {
+                let remoteGist;
+                try {
+                    remoteGist = await gistApiRequest('GET', '/gists/' + gistId);
+                } catch (e) {
+                    localStorage.removeItem(SYNC_GIST_KEY);
+                    await createNewGist();
+                    return;
+                }
+
+                const remoteNotes = JSON.parse(remoteGist.files['minivault_notes.json'].content);
+                const remoteMeta = JSON.parse(remoteGist.files['minivault_meta.json'].content);
+                const remoteProjects = JSON.parse(remoteGist.files['minivault_projects.json'].content);
+
+                mergeData(remoteNotes, remoteMeta, remoteProjects);
+
+                saveNotes();
+                saveProjects();
+
+                await gistApiRequest('PATCH', '/gists/' + gistId, {
+                    files: {
+                        'minivault_notes.json': { content: JSON.stringify(notes, null, 2) },
+                        'minivault_meta.json': { content: JSON.stringify(meta, null, 2) },
+                        'minivault_projects.json': { content: JSON.stringify(projects, null, 2) }
+                    }
+                });
+            } else {
+                await createNewGist();
+            }
+
+            localStorage.setItem(SYNC_LAST_KEY, String(Date.now()));
+            updateSyncStatusInfo();
+            renderFilterBar();
+            renderNoteList();
+            if (currentNote) renderNote();
+            updateSyncIndicator('done');
+            showToast('Sync erfolgreich');
+        } catch (e) {
+            console.error('Sync error:', e);
+            updateSyncIndicator('error');
+            showToast('Sync-Fehler: ' + e.message);
+        } finally {
+            syncInProgress = false;
+        }
+    }
+
+    async function createNewGist() {
+        const gist = await gistApiRequest('POST', '/gists', buildGistPayload());
+        localStorage.setItem(SYNC_GIST_KEY, gist.id);
+    }
+
+    function updateSyncIndicator(state) {
+        const btn = $('#btn-sync');
+        if (!btn) return;
+        if (state === 'syncing') {
+            btn.textContent = '⏳';
+            btn.classList.add('syncing');
+        } else if (state === 'error') {
+            btn.textContent = '⚠️';
+            btn.classList.remove('syncing');
+            setTimeout(() => { btn.textContent = '🔄'; }, 3000);
+        } else if (state === 'done') {
+            btn.textContent = '✅';
+            btn.classList.remove('syncing');
+            setTimeout(() => { btn.textContent = '🔄'; }, 2000);
+        } else {
+            btn.textContent = getSyncToken() ? '🔄' : '🔄';
+            btn.classList.remove('syncing');
+        }
+    }
+
+    async function autoSync() {
+        if (!getSyncToken() || !getSyncGistId()) return;
+        const last = parseInt(localStorage.getItem(SYNC_LAST_KEY) || '0');
+        if (Date.now() - last > 30000) {
+            await syncNow();
+        }
+    }
+
     // --- Events ---
 
     function setupEventListeners() {
@@ -973,6 +1193,13 @@
             if (e.key === 'Enter') confirmProjectAssign();
             if (e.key === 'Escape') $('#project-modal').classList.remove('visible');
         };
+
+        // Sync
+        $('#btn-sync').onclick = showSyncModal;
+        $('#btn-sync-save').onclick = () => { saveSyncToken(); $('#sync-modal').classList.remove('visible'); };
+        $('#btn-sync-cancel').onclick = () => $('#sync-modal').classList.remove('visible');
+        $('#btn-sync-now').onclick = () => { $('#sync-modal').classList.remove('visible'); syncNow(); };
+        $('#btn-sync-disconnect').onclick = disconnectSync;
 
         // Graph
         $('#graph-close').onclick = hideGraph;

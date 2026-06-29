@@ -752,4 +752,34 @@ html, body {
     #panel-view { padding: 24px 32px; }
 }
 
+/* ===== Sync ===== */
+.sync-hint {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.sync-hint strong {
+    color: var(--tag-color);
+}
+
+#sync-status-info {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background: var(--bg-primary);
+    border-radius: 8px;
+}
+
+#btn-sync.syncing {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 #desktop-toolbar { display: none; }
