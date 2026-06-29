@@ -23,6 +23,7 @@
     --project-color: #c084fc;
     --nav-height: 56px;
     --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
 }
 
 html, body {
@@ -46,6 +47,7 @@ html, body {
     display: flex;
     align-items: center;
     padding: 10px 16px;
+    padding-top: calc(10px + var(--safe-top));
     background: var(--bg-secondary);
     border-bottom: 1px solid var(--border);
     min-height: 48px;
