@@ -81,9 +81,10 @@
     async function init() {
         loadNotes();
 
-        if (!localStorage.getItem(INIT_KEY)) {
+        const INIT_VERSION = '2';
+        if (localStorage.getItem(INIT_KEY) !== INIT_VERSION) {
             await loadDefaultNotes();
-            localStorage.setItem(INIT_KEY, '1');
+            localStorage.setItem(INIT_KEY, INIT_VERSION);
         }
 
         ensureMetaForAll();
