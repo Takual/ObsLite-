@@ -25,12 +25,20 @@
         <div id="panels">
             <!-- Notes List -->
             <div class="panel active" id="panel-notes">
-                <input type="text" id="search-box" placeholder="Notizen suchen...">
-                <div style="padding:8px 12px;display:flex;gap:6px;">
-                    <button id="btn-new" style="flex:1;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--accent);color:white;cursor:pointer;font-size:0.9rem;">+ Neue Notiz</button>
-                    <button id="btn-add-clip" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-tertiary);color:var(--text-primary);cursor:pointer;font-size:0.9rem;" title="Aus Zwischenablage einfügen">📋</button>
-                    <button id="btn-export" style="padding:10px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-tertiary);color:var(--text-primary);cursor:pointer;font-size:0.9rem;" title="Als ZIP exportieren">💾</button>
+                <div id="search-container">
+                    <input type="text" id="search-box" placeholder="Volltextsuche...">
                 </div>
+                <div class="list-actions">
+                    <button id="btn-new" class="accent">+ Notiz</button>
+                    <button id="btn-daily" class="daily">📅 Heute</button>
+                    <button id="btn-export" title="ZIP Export">💾</button>
+                    <select id="sort-select">
+                        <option value="name">A-Z</option>
+                        <option value="modified">Zuletzt bearbeitet</option>
+                        <option value="created">Erstellt</option>
+                    </select>
+                </div>
+                <div id="filter-bar"></div>
                 <div id="note-list"></div>
             </div>
 
@@ -54,6 +62,12 @@
                 <h3>Backlinks</h3>
                 <div id="backlinks-list"></div>
             </div>
+
+            <!-- Outline / TOC -->
+            <div class="panel" id="panel-outline">
+                <h3>Gliederung</h3>
+                <div id="outline-list"></div>
+            </div>
         </div>
 
         <!-- Mobile Bottom Navigation -->
@@ -69,6 +83,10 @@
             <button id="nav-backlinks">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
                 Links
+            </button>
+            <button id="nav-outline">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 10h12M4 14h16M4 18h8"/></svg>
+                TOC
             </button>
             <button id="nav-graph">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><circle cx="18" cy="6" r="3"/><line x1="8.5" y1="7.5" x2="15.5" y2="16.5"/><line x1="15.5" y1="6" x2="8.5" y2="6"/></svg>
@@ -87,10 +105,28 @@
     <div class="modal-overlay" id="new-note-modal">
         <div class="modal">
             <h3>Neue Notiz</h3>
+            <label>Name</label>
             <input type="text" id="new-note-name" placeholder="Name der Notiz...">
+            <label>Vorlage</label>
+            <div class="template-list" id="template-list"></div>
             <div class="modal-actions">
                 <button id="btn-create-cancel">Abbrechen</button>
                 <button id="btn-create-confirm" class="primary">Erstellen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Project Assignment Modal -->
+    <div class="modal-overlay" id="project-modal">
+        <div class="modal">
+            <h3>Projekt zuordnen</h3>
+            <label>Projektname</label>
+            <input type="text" id="project-name-input" placeholder="Neues oder bestehendes Projekt...">
+            <div id="existing-projects" class="template-list"></div>
+            <div class="modal-actions">
+                <button id="btn-project-remove" style="color:var(--accent)">Entfernen</button>
+                <button id="btn-project-cancel">Abbrechen</button>
+                <button id="btn-project-confirm" class="primary">Zuordnen</button>
             </div>
         </div>
     </div>
