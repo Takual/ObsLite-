@@ -462,6 +462,9 @@
         const textarea = $('#panel-edit textarea');
         if (textarea) textarea.value = content;
 
+        const editTitle = $('#edit-note-title');
+        if (editTitle) editTitle.textContent = currentNote;
+
         if (window.innerWidth >= 768) {
             if (editMode) {
                 $('#panel-view').classList.add('has-editor');
@@ -1197,6 +1200,7 @@
 
         // Mobile view actions
         $('#btn-edit-view').onclick = toggleEdit;
+        $('#btn-edit-done').onclick = toggleEdit;
         $('#btn-delete-view').onclick = () => {
             if (currentNote && currentNote !== 'home') deleteNote(currentNote);
         };
