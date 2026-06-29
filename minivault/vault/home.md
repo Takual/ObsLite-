@@ -2,20 +2,20 @@
 
 Dein persönliches Wissensmanagement-System.
 
-## Schnellstart
+## Meine Projekte
 
-- [[beispiel-notiz]] – Eine Beispielnotiz zum Ausprobieren
-- [[zweite-notiz]] – Eine weitere Notiz mit Rückverlinkung
+- [[projekt-webshop]] – Online-Shop Relaunch
+- [[projekt-podcast]] – Podcast "Digitale Gedanken"
+- [[projekt-gartenhaus]] – Gartenhaus-Bau Planung
 
-## Features
+## Letzte Notizen
 
-- **Markdown-Rendering** mit voller Formatierung
-- **Wikilinks** mit `[[Notizname]]`-Syntax
-- **Backlinks** zeigen Verbindungen zwischen Notizen
-- **Tags** wie #tutorial oder #wichtig zum Filtern
-- **Projekte** – Notizen einem Projekt zuordnen
-- **Vorlagen** – Meeting, Idee, Projekt, Link-Sammlung
-- **Daily Notes** – Tagesnotiz per Knopfdruck
-- **Volltextsuche** über alle Notizen
-- **Graph-Ansicht** visualisiert dein Wissensnetz
-- **Offline-fähig** – alles läuft lokal im Browser
+- [[meeting-2026-06-25]] – Kickoff-Meeting Webshop
+- [[idee-newsletter]] – Newsletter-Konzept
+- [[rezept-thai-curry]] – Thai Curry Rezept
+
+## Schnellzugriff
+
+- [[leseliste]] – Bücher & Artikel
+- [[fitness-tracker]] – Trainingsplan
+- [[urlaub-2026]] – Urlaubsplanung Kroatien

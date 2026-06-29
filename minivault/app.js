@@ -8,7 +8,15 @@
     const SORT_KEY = 'minivault_sort';
     const DEFAULT_NOTE = 'home';
 
-    const DEFAULT_NOTES = ['home', 'beispiel-notiz', 'zweite-notiz'];
+    const DEFAULT_NOTES = [
+        'home', 'beispiel-notiz', 'zweite-notiz',
+        'projekt-webshop', 'meeting-2026-06-25', 'webshop-seo-recherche', 'webshop-design-ideen',
+        'projekt-podcast', 'podcast-equipment',
+        'projekt-gartenhaus', 'gartenhaus-materialliste',
+        'idee-newsletter', 'idee-second-brain', 'idee-geschenkefinder',
+        'leseliste', 'buchnotizen-atomic-habits',
+        'fitness-tracker', 'rezept-thai-curry', 'urlaub-2026'
+    ];
 
     const TEMPLATES = [
         { id: 'empty', name: 'Leere Notiz', desc: 'Nur ein Titel', content: '# {{title}}\n\n' },
@@ -88,6 +96,20 @@
         registerServiceWorker();
     }
 
+    const DEFAULT_PROJECT_MAP = {
+        'projekt-webshop': 'Webshop Relaunch',
+        'meeting-2026-06-25': 'Webshop Relaunch',
+        'webshop-seo-recherche': 'Webshop Relaunch',
+        'webshop-design-ideen': 'Webshop Relaunch',
+        'idee-geschenkefinder': 'Webshop Relaunch',
+        'projekt-podcast': 'Podcast',
+        'podcast-equipment': 'Podcast',
+        'idee-newsletter': 'Podcast',
+        'projekt-gartenhaus': 'Gartenhaus',
+        'gartenhaus-materialliste': 'Gartenhaus',
+        'urlaub-2026': 'Urlaub Kroatien'
+    };
+
     async function loadDefaultNotes() {
         for (const name of DEFAULT_NOTES) {
             if (notes[name]) continue;
@@ -98,8 +120,15 @@
                 notes[name] = '# ' + name + '\n\nNeue Notiz.';
             }
             getMeta(name);
+            if (DEFAULT_PROJECT_MAP[name]) {
+                meta[name].project = DEFAULT_PROJECT_MAP[name];
+                if (!projects.includes(DEFAULT_PROJECT_MAP[name])) {
+                    projects.push(DEFAULT_PROJECT_MAP[name]);
+                }
+            }
         }
         saveNotes();
+        saveProjects();
     }
 
     function ensureMetaForAll() {
