@@ -1195,6 +1195,12 @@
             if (e.key === 'Escape') $('#project-modal').classList.remove('visible');
         };
 
+        // Mobile view actions
+        $('#btn-edit-view').onclick = toggleEdit;
+        $('#btn-delete-view').onclick = () => {
+            if (currentNote && currentNote !== 'home') deleteNote(currentNote);
+        };
+
         // Sync
         $('#btn-sync').onclick = showSyncModal;
         $('#btn-sync-save').onclick = () => { saveSyncToken(); $('#sync-modal').classList.remove('visible'); };

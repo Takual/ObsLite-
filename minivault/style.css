@@ -752,6 +752,41 @@ html, body {
     #panel-view { padding: 24px 32px; }
 }
 
+/* ===== Mobile View Actions ===== */
+#mobile-view-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+#mobile-view-actions button {
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+#mobile-view-actions #btn-edit-view {
+    flex: 1;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 600;
+}
+
+#mobile-view-actions #btn-delete-view {
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+}
+
+@media (min-width: 768px) {
+    #mobile-view-actions { display: none; }
+}
+
 /* ===== Sync ===== */
 .sync-hint {
     font-size: 0.78rem;
