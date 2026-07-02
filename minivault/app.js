@@ -283,13 +283,13 @@
     function openMobileNote(name) {
         const textarea = $('#mobile-textarea');
         const titleEl = $('#mobile-note-title');
-        const preview = $('#mobile-preview');
-        const btn = $('#btn-mobile-preview');
 
         if (textarea) textarea.value = notes[name] || '';
         if (titleEl) titleEl.textContent = name;
 
         applyMobileViewMode();
+        renderBacklinks();
+        renderOutline();
 
         showPanel('mobile-note');
         $$('#bottom-nav button').forEach(b => b.classList.remove('active'));
@@ -1238,8 +1238,14 @@
             if (isMobile() && currentNote) openMobileNote(currentNote);
             else showPanel('view');
         };
-        $('#nav-backlinks').onclick = () => showPanel('backlinks');
-        $('#nav-outline').onclick = () => showPanel('outline');
+        $('#nav-backlinks').onclick = () => {
+            if (isMobile() && currentNote) { renderBacklinks(); showPanel('backlinks'); }
+            else showPanel('backlinks');
+        };
+        $('#nav-outline').onclick = () => {
+            if (isMobile() && currentNote) { renderOutline(); showPanel('outline'); }
+            else showPanel('outline');
+        };
         $('#nav-graph').onclick = showGraph;
 
         // Mobile note toolbar
