@@ -683,11 +683,22 @@
             saveCurrentEdit();
             editMode = false;
             if (window.innerWidth < 768) showPanel('view');
+            renderNote();
         } else {
             editMode = true;
-            if (window.innerWidth < 768) showPanel('edit');
+            if (window.innerWidth < 768) {
+                const textarea = $('#panel-edit textarea');
+                if (textarea && currentNote) {
+                    textarea.value = notes[currentNote] || '';
+                }
+                const editTitle = $('#edit-note-title');
+                if (editTitle) editTitle.textContent = currentNote || '';
+                showPanel('edit');
+                setTimeout(() => textarea && textarea.focus(), 100);
+            } else {
+                renderNote();
+            }
         }
-        renderNote();
     }
 
     function saveCurrentEdit() {
