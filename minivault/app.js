@@ -288,8 +288,8 @@
         if (titleEl) titleEl.textContent = name;
 
         applyMobileViewMode();
-        renderBacklinks();
-        renderOutline();
+        renderMobileBacklinks();
+        renderMobileToc();
 
         showPanel('mobile-note');
         $$('#bottom-nav button').forEach(b => b.classList.remove('active'));
@@ -322,6 +322,57 @@
         if (!mobilePreviewMode) {
             const textarea = $('#mobile-textarea');
             setTimeout(() => textarea && textarea.focus(), 50);
+        }
+    }
+
+    function renderMobileBacklinks() {
+        const list = $('#mobile-backlinks-list');
+        if (!list || !currentNote) return;
+        list.innerHTML = '';
+        const pattern = '[[' + currentNote + ']]';
+        let found = false;
+        for (const [name, content] of Object.entries(notes)) {
+            if (name === currentNote || !content || !content.includes(pattern)) continue;
+            found = true;
+            const div = document.createElement('div');
+            div.className = 'backlink-item';
+            div.textContent = name;
+            div.onclick = () => navigateTo(name);
+            list.appendChild(div);
+        }
+        if (!found) list.innerHTML = '<div style="padding:8px 16px;color:var(--text-muted);font-size:0.85rem;">Keine Backlinks</div>';
+        const section = $('#mobile-toc-section');
+        if (section) section.style.display = found ? '' : 'none';
+    }
+
+    function renderMobileToc() {
+        const list = $('#mobile-toc-list');
+        if (!list || !currentNote || !notes[currentNote]) return;
+        list.innerHTML = '';
+        const headings = [];
+        notes[currentNote].split('\n').forEach(line => {
+            const m = line.match(/^(#{1,3})\s+(.+)/);
+            if (m) headings.push({ level: m[1].length, text: m[2].trim() });
+        });
+        if (!headings.length) {
+            list.innerHTML = '<div style="padding:8px 16px;color:var(--text-muted);font-size:0.85rem;">Keine Überschriften</div>';
+            return;
+        }
+        for (const h of headings) {
+            const div = document.createElement('div');
+            div.className = 'outline-item level-' + h.level;
+            div.textContent = h.text;
+            div.onclick = () => {
+                const preview = $('#mobile-preview');
+                if (!preview) return;
+                for (const el of preview.querySelectorAll('h1,h2,h3')) {
+                    if (el.textContent.trim() === h.text) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        break;
+                    }
+                }
+            };
+            list.appendChild(div);
         }
     }
 
@@ -1239,12 +1290,16 @@
             else showPanel('view');
         };
         $('#nav-backlinks').onclick = () => {
-            if (isMobile() && currentNote) { renderBacklinks(); showPanel('backlinks'); }
-            else showPanel('backlinks');
+            if (isMobile()) {
+                if (currentNote) openMobileNote(currentNote);
+                else showPanel('notes');
+            } else showPanel('backlinks');
         };
         $('#nav-outline').onclick = () => {
-            if (isMobile() && currentNote) { renderOutline(); showPanel('outline'); }
-            else showPanel('outline');
+            if (isMobile()) {
+                if (currentNote) openMobileNote(currentNote);
+                else showPanel('notes');
+            } else showPanel('outline');
         };
         $('#nav-graph').onclick = showGraph;
 
