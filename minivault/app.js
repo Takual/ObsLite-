@@ -282,9 +282,19 @@
     function openMobileNote(name) {
         const textarea = $('#mobile-textarea');
         const titleEl = $('#mobile-note-title');
-        if (textarea) textarea.value = notes[name] || '';
+        const preview = $('#mobile-preview');
+        const btn = $('#btn-mobile-preview');
+        if (textarea) {
+            textarea.value = notes[name] || '';
+            textarea.style.display = 'none';
+        }
         if (titleEl) titleEl.textContent = name;
-        hideMobilePreview();
+        if (preview) {
+            preview.innerHTML = renderMarkdown(notes[name] || '');
+            preview.classList.add('active');
+            bindMobilePreviewLinks();
+        }
+        if (btn) btn.classList.add('active');
         showPanel('mobile-note');
         $$('#bottom-nav button').forEach(b => b.classList.remove('active'));
         $('#nav-view').classList.add('active');
@@ -293,8 +303,10 @@
     function hideMobilePreview() {
         const preview = $('#mobile-preview');
         const btn = $('#btn-mobile-preview');
+        const textarea = $('#mobile-textarea');
         if (preview) preview.classList.remove('active');
         if (btn) btn.classList.remove('active');
+        if (textarea) textarea.style.display = '';
     }
 
     function toggleMobilePreview() {
@@ -306,6 +318,7 @@
             preview.classList.remove('active');
             btn.classList.remove('active');
             if (textarea) textarea.style.display = '';
+            setTimeout(() => textarea && textarea.focus(), 50);
         } else {
             preview.innerHTML = renderMarkdown(notes[currentNote] || '');
             bindMobilePreviewLinks();
