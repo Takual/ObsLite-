@@ -15,12 +15,6 @@
 </head>
 <body>
     <div id="app">
-        <!-- Mobile Top Bar -->
-        <div id="top-bar">
-            <span class="note-title">home</span>
-            <button id="btn-edit-mobile">✎</button>
-        </div>
-
         <!-- Panels -->
         <div id="panels">
             <!-- Notes List -->
@@ -43,26 +37,30 @@
                 <div id="note-list"></div>
             </div>
 
-            <!-- View -->
+            <!-- Mobile Note Editor (always editable on mobile) -->
+            <div class="panel" id="panel-mobile-note">
+                <div id="mobile-note-toolbar">
+                    <button id="btn-mobile-back">← Zurück</button>
+                    <span id="mobile-note-title"></span>
+                    <button id="btn-mobile-preview" title="Vorschau">👁</button>
+                    <button id="btn-mobile-save">💾 Speichern</button>
+                </div>
+                <div id="mobile-preview"></div>
+                <textarea id="mobile-textarea" spellcheck="false" placeholder="Markdown schreiben..."></textarea>
+            </div>
+
+            <!-- View (Desktop only) -->
             <div class="panel" id="panel-view">
                 <div id="desktop-toolbar">
                     <span class="note-title" id="desktop-note-title">home</span>
                     <button id="btn-edit-desktop">Bearbeiten</button>
                     <button id="btn-graph-desktop">Graph</button>
                 </div>
-                <div id="mobile-view-actions">
-                    <button id="btn-edit-view">✎ Bearbeiten</button>
-                    <button id="btn-delete-view">🗑 Löschen</button>
-                </div>
                 <div id="viewer"></div>
             </div>
 
-            <!-- Editor -->
+            <!-- Editor (Desktop only) -->
             <div class="panel" id="panel-edit">
-                <div id="edit-toolbar">
-                    <span id="edit-note-title"></span>
-                    <button id="btn-edit-done">✓ Fertig</button>
-                </div>
                 <textarea spellcheck="false" placeholder="Markdown schreiben..."></textarea>
             </div>
 
@@ -87,7 +85,7 @@
             </button>
             <button id="nav-view">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                Lesen
+                Notiz
             </button>
             <button id="nav-backlinks">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>

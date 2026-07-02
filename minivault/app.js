@@ -264,25 +264,95 @@
 
     // --- Panel Navigation ---
 
+    const isMobile = () => window.innerWidth < 768;
+
     function showPanel(name) {
         currentPanel = name;
         $$('.panel').forEach(p => p.classList.remove('active'));
-        $('#panel-' + name).classList.add('active');
+        if (isMobile() && (name === 'view' || name === 'edit')) {
+            name = 'mobile-note';
+        }
+        const panel = $('#panel-' + name);
+        if (panel) panel.classList.add('active');
         $$('#bottom-nav button').forEach(b => b.classList.remove('active'));
-        const navBtn = $('#nav-' + name);
+        const navBtn = $('#nav-' + (name === 'mobile-note' ? 'view' : name));
         if (navBtn) navBtn.classList.add('active');
-        if (name === 'view' || name === 'edit') updateTopBar();
     }
 
-    function updateTopBar() {
-        if (!currentNote) return;
-        $('.note-title').textContent = currentNote;
-        const editBtn = $('#btn-edit-mobile');
-        if (editBtn) {
-            editBtn.textContent = editMode ? '✓' : '✎';
-            editBtn.classList.toggle('active', editMode);
+    function openMobileNote(name) {
+        const textarea = $('#mobile-textarea');
+        const titleEl = $('#mobile-note-title');
+        if (textarea) textarea.value = notes[name] || '';
+        if (titleEl) titleEl.textContent = name;
+        hideMobilePreview();
+        showPanel('mobile-note');
+        $$('#bottom-nav button').forEach(b => b.classList.remove('active'));
+        $('#nav-view').classList.add('active');
+    }
+
+    function hideMobilePreview() {
+        const preview = $('#mobile-preview');
+        const btn = $('#btn-mobile-preview');
+        if (preview) preview.classList.remove('active');
+        if (btn) btn.classList.remove('active');
+    }
+
+    function toggleMobilePreview() {
+        const preview = $('#mobile-preview');
+        const btn = $('#btn-mobile-preview');
+        const textarea = $('#mobile-textarea');
+        if (!preview) return;
+        if (preview.classList.contains('active')) {
+            preview.classList.remove('active');
+            btn.classList.remove('active');
+            if (textarea) textarea.style.display = '';
+        } else {
+            preview.innerHTML = renderMarkdown(notes[currentNote] || '');
+            bindMobilePreviewLinks();
+            preview.classList.add('active');
+            btn.classList.add('active');
+            if (textarea) textarea.style.display = 'none';
         }
     }
+
+    function bindMobilePreviewLinks() {
+        $('#mobile-preview').querySelectorAll('.wikilink').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = el.dataset.note;
+                if (!notes[target]) {
+                    notes[target] = '# ' + target + '\n\nNeue Notiz.';
+                    getMeta(target);
+                    saveNotes();
+                }
+                navigateTo(target);
+            });
+        });
+        $('#mobile-preview').querySelectorAll('.inline-tag').forEach(el => {
+            el.addEventListener('click', () => {
+                activeTagFilter = el.dataset.tag;
+                activeProjectFilter = null;
+                renderFilterBar();
+                renderNoteList();
+                showPanel('notes');
+            });
+        });
+    }
+
+    function saveMobileNote() {
+        if (!currentNote) return;
+        const textarea = $('#mobile-textarea');
+        if (textarea) {
+            notes[currentNote] = textarea.value;
+            touchMeta(currentNote);
+            saveNotes();
+            renderFilterBar();
+            renderNoteList();
+            showToast('Gespeichert');
+        }
+    }
+
+    function updateTopBar() {}
 
     // --- Rendering ---
 
@@ -461,9 +531,6 @@
 
         const textarea = $('#panel-edit textarea');
         if (textarea) textarea.value = content;
-
-        const editTitle = $('#edit-note-title');
-        if (editTitle) editTitle.textContent = currentNote;
 
         if (window.innerWidth >= 768) {
             if (editMode) {
@@ -673,32 +740,24 @@
         currentNote = name;
         location.hash = name;
         renderNoteList();
-        renderNote();
+        if (isMobile()) {
+            openMobileNote(name);
+        } else {
+            renderNote();
+        }
     }
 
     // --- Edit ---
 
     function toggleEdit() {
+        if (isMobile()) return;
         if (editMode) {
             saveCurrentEdit();
             editMode = false;
-            if (window.innerWidth < 768) showPanel('view');
-            renderNote();
         } else {
             editMode = true;
-            if (window.innerWidth < 768) {
-                const textarea = $('#panel-edit textarea');
-                if (textarea && currentNote) {
-                    textarea.value = notes[currentNote] || '';
-                }
-                const editTitle = $('#edit-note-title');
-                if (editTitle) editTitle.textContent = currentNote || '';
-                showPanel('edit');
-                setTimeout(() => textarea && textarea.focus(), 100);
-            } else {
-                renderNote();
-            }
         }
+        renderNote();
     }
 
     function saveCurrentEdit() {
@@ -1161,14 +1220,34 @@
 
     function setupEventListeners() {
         // Bottom nav
-        $('#nav-notes').onclick = () => showPanel('notes');
-        $('#nav-view').onclick = () => showPanel('view');
+        $('#nav-notes').onclick = () => {
+            if (isMobile() && currentNote) saveMobileNote();
+            showPanel('notes');
+        };
+        $('#nav-view').onclick = () => {
+            if (isMobile() && currentNote) openMobileNote(currentNote);
+            else showPanel('view');
+        };
         $('#nav-backlinks').onclick = () => showPanel('backlinks');
         $('#nav-outline').onclick = () => showPanel('outline');
         $('#nav-graph').onclick = showGraph;
 
-        // Top bar
-        $('#btn-edit-mobile').onclick = toggleEdit;
+        // Mobile note toolbar
+        $('#btn-mobile-back').onclick = () => {
+            saveMobileNote();
+            showPanel('notes');
+        };
+        $('#btn-mobile-save').onclick = saveMobileNote;
+        $('#btn-mobile-preview').onclick = toggleMobilePreview;
+
+        // Mobile textarea auto-save
+        $('#mobile-textarea').addEventListener('input', () => {
+            if (currentNote) {
+                notes[currentNote] = $('#mobile-textarea').value;
+                touchMeta(currentNote);
+                saveNotes();
+            }
+        });
 
         // List actions
         $('#btn-new').onclick = showNewNoteModal;
@@ -1207,13 +1286,6 @@
         $('#project-name-input').onkeydown = (e) => {
             if (e.key === 'Enter') confirmProjectAssign();
             if (e.key === 'Escape') $('#project-modal').classList.remove('visible');
-        };
-
-        // Mobile view actions
-        $('#btn-edit-view').onclick = toggleEdit;
-        $('#btn-edit-done').onclick = toggleEdit;
-        $('#btn-delete-view').onclick = () => {
-            if (currentNote && currentNote !== 'home') deleteNote(currentNote);
         };
 
         // Sync
