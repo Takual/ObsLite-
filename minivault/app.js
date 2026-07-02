@@ -39,6 +39,7 @@
     let activeTagFilter = null;
     let activeProjectFilter = null;
     let sortMode = 'name';
+    let mobilePreviewMode = true;
 
     const $ = (sel) => document.querySelector(sel);
     const $$ = (sel) => document.querySelectorAll(sel);
@@ -284,47 +285,43 @@
         const titleEl = $('#mobile-note-title');
         const preview = $('#mobile-preview');
         const btn = $('#btn-mobile-preview');
-        if (textarea) {
-            textarea.value = notes[name] || '';
-            textarea.style.display = 'none';
-        }
+
+        if (textarea) textarea.value = notes[name] || '';
         if (titleEl) titleEl.textContent = name;
-        if (preview) {
-            preview.innerHTML = renderMarkdown(notes[name] || '');
-            preview.classList.add('active');
-            bindMobilePreviewLinks();
-        }
-        if (btn) btn.classList.add('active');
+
+        applyMobileViewMode();
+
         showPanel('mobile-note');
         $$('#bottom-nav button').forEach(b => b.classList.remove('active'));
         $('#nav-view').classList.add('active');
     }
 
-    function hideMobilePreview() {
+    function applyMobileViewMode() {
+        const textarea = $('#mobile-textarea');
         const preview = $('#mobile-preview');
         const btn = $('#btn-mobile-preview');
-        const textarea = $('#mobile-textarea');
-        if (preview) preview.classList.remove('active');
-        if (btn) btn.classList.remove('active');
-        if (textarea) textarea.style.display = '';
+
+        if (mobilePreviewMode) {
+            if (preview) {
+                preview.innerHTML = renderMarkdown(notes[currentNote] || '');
+                preview.classList.add('active');
+                bindMobilePreviewLinks();
+            }
+            if (textarea) textarea.style.display = 'none';
+            if (btn) btn.classList.add('active');
+        } else {
+            if (preview) preview.classList.remove('active');
+            if (textarea) textarea.style.display = '';
+            if (btn) btn.classList.remove('active');
+        }
     }
 
     function toggleMobilePreview() {
-        const preview = $('#mobile-preview');
-        const btn = $('#btn-mobile-preview');
-        const textarea = $('#mobile-textarea');
-        if (!preview) return;
-        if (preview.classList.contains('active')) {
-            preview.classList.remove('active');
-            btn.classList.remove('active');
-            if (textarea) textarea.style.display = '';
+        mobilePreviewMode = !mobilePreviewMode;
+        applyMobileViewMode();
+        if (!mobilePreviewMode) {
+            const textarea = $('#mobile-textarea');
             setTimeout(() => textarea && textarea.focus(), 50);
-        } else {
-            preview.innerHTML = renderMarkdown(notes[currentNote] || '');
-            bindMobilePreviewLinks();
-            preview.classList.add('active');
-            btn.classList.add('active');
-            if (textarea) textarea.style.display = 'none';
         }
     }
 
